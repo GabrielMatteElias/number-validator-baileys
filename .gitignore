@@ -1,0 +1,71 @@
+# Arquivo .gitignore para WhatsApp Baileys API
+
+### Diretórios ###
+sessions/       # Pasta de sessões do Baileys
+node_modules/   # Dependências do Node
+dist/           # Pasta de build (se usar TypeScript)
+.vscode/        # Configurações do VSCode
+.idea/          # Configurações do JetBrains IDE
+temp/           # Arquivos temporários
+logs/           # Arquivos de log
+coverage/       # Relatórios de teste
+build/          # Pasta de build
+
+### Arquivos ###
+.env             # Variáveis de ambiente
+*.log            # Arquivos de log
+*.pid            # Process ID files
+*.seed           # Arquivos de seed
+*.pid.lock       # Lock files
+.DS_Store        # Arquivo do MacOS
+Thumbs.db        # Arquivo do Windows
+*.pem            # Certificados SSL
+*.key            # Chaves privadas
+
+### Docker ###
+docker-compose.override.yml
+docker-compose.prod.yml
+/data/           # Volume de dados do Docker
+
+### Banco de dados ###
+*.db
+*.sqlite
+*.sqlite3
+
+### Backups ###
+*.bak
+*.backup
+
+### Testes ###
+/test-results.xml
+/test-reports/
+
+### Editor ###
+*.swp
+*.swo
+*~
+.~lock.*
+
+### Dependências ###
+jspm_packages/
+.webpack/
+.yarn-integrity
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+### Sistema ###
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+### TypeScript ###
+*.tsbuildinfo
+
+### Exceções (mantenha se necessário) ###
+!package-lock.json
+!yarn.lock
+!pnpm-lock.yaml
