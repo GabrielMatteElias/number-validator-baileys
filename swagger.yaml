@@ -10,17 +10,18 @@ paths:
       summary: Conecta com o cliente WhatsApp
       responses:
         '200':
-          description: Cliente já conectado ou QR Code gerado
+          description: QR Code gerado para conexão
           content:
             application/json:
-              examples:
-                conectado:
-                  value:
-                    res: "conectado"
-                    message: "Cliente ja conectado"
-                qrcode:
-                  value:
-                    res: "qrcode"
+              example:
+                res: "qrcode"
+        '203':
+          description: Cliente já estava conectado
+          content:
+            application/json:
+              example:
+                res: "conectado"
+                message: "Cliente ja conectado"
         '500':
           description: Erro interno
           content:

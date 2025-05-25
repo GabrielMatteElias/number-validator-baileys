@@ -1,7 +1,18 @@
-const { useMultiFileAuthState, DisconnectReason, Browsers, makeWASocket } = require('baileys');
+const {
+    useMultiFileAuthState,
+    makeWASocket,
+    fetchLatestBaileysVersion,
+    DisconnectReason,
+    Browsers,
+    isJidBroadcast
+} = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 const { default: pino } = require('pino');
+const qrcode = require('qrcode-terminal'); // Gera QR Code no terminal
+
+const sessionPath = path.resolve('auth_info/session');
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ================ // Classe para acessar funções do WhatsApp com Baileys \\ ================ \\
 class WhatsAppClient {
@@ -10,53 +21,86 @@ class WhatsAppClient {
         this.client = null;
     }
 
-    // Inicializa o cliente do WhatsApp
+
     async inicializarClient() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+        fs.mkdirSync(sessionPath, { recursive: true });
 
-    this.client = makeWASocket({
-        logger: pino({ level: 'error' }),
-        printQRInTerminal: true,
-        auth: state,
-        browser: Browsers.ubuntu('Chrome'),
-    });
+        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const { version } = await fetchLatestBaileysVersion();
 
-    return new Promise((resolve, reject) => {
-        const connectionTimeout = setTimeout(() => {
-            reject(new Error('Timeout ao estabelecer conexão'));
-        }, 30000); // 30 segundos de timeout
+        this.client = makeWASocket({
+            logger: pino({ level: 'error' }),
+            version,
+            auth: state,
+            browser: Browsers.ubuntu('Chrome'),
+            generateHighQualityLinkPreview: true,
+            syncFullHistory: false,
+            shouldIgnoreJid: jid => isJidBroadcast(jid),
+        });
 
-        // Limpa timeout e resolve quando conectado
-        const cleanUp = () => {
-            clearTimeout(connectionTimeout);
-            this.client.ev.off('connection.update', connectionHandler);
-        };
+        this.client.ev.on('creds.update', saveCreds);
 
-        const connectionHandler = (update) => {
-            const { connection, qr } = update;
+        return new Promise((resolve, reject) => {
+            const connectionTimeout = setTimeout(() => {
+                cleanup();
+                reject(new Error('Timeout ao estabelecer conexão'));
+            }, 30000);
 
-            if (qr) {
-                cleanUp();
-                resolve(qr);
-            }
+            const cleanup = () => {
+                clearTimeout(connectionTimeout);
+                this.client.ev.off('connection.update', connectionHandler);
+            };
 
-            if (connection === 'open') {
-                cleanUp();
-                // Adiciona listener para salvar credenciais
-                this.client.ev.on('creds.update', saveCreds);
-                resolve(conectado);
-            }
+            const nonReconnectableReasons = [
+                DisconnectReason.loggedOut,    // Usuário deslogou ou sessão inválida
+                // Pode incluir outros como banned, badSession etc se desejar
+            ];
 
-            if (connection === 'close') {
-                cleanUp();
-                reject(new Error('Conexão fechada durante a inicialização'));
-            }
-        };
+            const connectionHandler = async (update) => {
+                const { connection, qr, lastDisconnect } = update;
 
-        this.client.ev.on('connection.update', connectionHandler);
-    });
-}
+                if (qr) {
+                    qrcode.generate(qr, { small: true });
+                    this.qr = qr;
+                }
 
+                if (connection === 'open') {
+                    cleanup();
+                    console.log('Conexao concluida com sucesso!');
+                    
+                    resolve('conectado');
+                }
+
+                if (connection === 'close') {
+                    cleanup();
+
+                    const statusCode = lastDisconnect?.error?.output?.statusCode;
+                    const reason = lastDisconnect?.error?.message || '';
+
+                    if (nonReconnectableReasons.includes(statusCode)) {
+                        console.log('Cliente desconectado permanentemente:', reason);
+
+                        // Apaga a pasta de sessão se existir
+                        if (fs.existsSync(sessionPath)) {
+                            fs.rmSync(sessionPath, { recursive: true, force: true });
+                            console.log('Pasta da sessão removida.');
+                        }
+                        reject(new Error(`Conexão fechada: ${reason}`));
+                    } else {
+                        console.log(`Conexão fechada temporariamente (${reason}), tentando reconectar em 5s...`);
+                        await delay(5000);
+
+                        // Reinicia a conexão recursivamente
+                        this.inicializarClient()
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                }
+            };
+
+            this.client.ev.on('connection.update', connectionHandler);
+        });
+    }
 
     // Conecta um cliente ao WhatsApp
     async conectarWhatsapp() {

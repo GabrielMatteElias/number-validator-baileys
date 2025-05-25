@@ -10,7 +10,7 @@ exports.conectarClient = async (req, res) => {
 
         if (response.status === 'erro') return res.status(500).json({ error: response.mensagem });
 
-        if (response === 'conectado') return res.status(200).json({ res: response, message: 'Cliente ja conectado' });
+        if (response === 'conectado') return res.status(203).json({ res: response, message: 'Cliente ja conectado' });
 
         return res.status(200).json({ res: response });
 
