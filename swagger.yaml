@@ -1,0 +1,77 @@
+openapi: 3.0.0
+info:
+  title: API WhatsApp
+  version: 1.0.0
+  description: Documentação da API para conexão e validação de números via WhatsApp
+
+paths:
+  /whatsapp/conectar:
+    get:
+      summary: Conecta com o cliente WhatsApp
+      responses:
+        '200':
+          description: Cliente já conectado ou QR Code gerado
+          content:
+            application/json:
+              examples:
+                conectado:
+                  value:
+                    res: "conectado"
+                    message: "Cliente ja conectado"
+                qrcode:
+                  value:
+                    res: "qrcode"
+        '500':
+          description: Erro interno
+          content:
+            application/json:
+              example:
+                error: "Mensagem de erro"
+
+  /whatsapp/validar-numero:
+    post:
+      summary: Valida se o número possui WhatsApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - telefone
+              properties:
+                telefone:
+                  type: string
+      responses:
+        '200':
+          description: Resultado da validação
+          content:
+            application/json:
+              examples:
+                possuiWhatsapp:
+                  value:
+                    res: true
+                    msg: "Telefone possui whatsapp"
+                naoPossuiWhatsapp:
+                  value:
+                    res: false
+                    msg: "Telefone não possui whatsapp"
+        '400':
+          description: Campo obrigatório ausente
+          content:
+            application/json:
+              example:
+                error: "O campo telefone é obrigatório."
+        '403':
+          description: Sessão não conectada
+          content:
+            application/json:
+              example:
+                error: "Sessão não conectada"
+        '500':
+          description: Erro interno
+          content:
+            application/json:
+              example:
+                error: "Erro interno ao validar número."
+                details: "Mensagem do erro"
