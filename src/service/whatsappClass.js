@@ -62,6 +62,7 @@ class WhatsAppClient {
                 if (qr) {
                     qrcode.generate(qr, { small: true });
                     this.qr = qr;
+                    resolve(qr)
                 }
 
                 if (connection === 'open') {
